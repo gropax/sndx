@@ -13,11 +13,18 @@
       in {
         devShells.default = pkgs.mkShell {
           name = "sndx";
+          venvDir = "./.venv";
+
           buildInputs = [
             pkgs.python312Packages.python
             pkgs.python312Packages.venvShellHook
           ];
-          venvDir = "./.venv";
+
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+            pkgs.stdenv.cc.cc.lib
+            pkgs.zeromq
+          ];
+
           #postVenvCreation = ''
           #  unset SOURCE_DATE_EPOCH
           #'';
