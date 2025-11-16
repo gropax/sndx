@@ -25,6 +25,12 @@
             pkgs.zeromq
           ];
 
+
+          # Fix for opening tmux in nix-shell env
+          postShellHook = ''
+            export SHELL=${pkgs.bashInteractive}/bin/bash
+          '';
+
           #postVenvCreation = ''
           #  unset SOURCE_DATE_EPOCH
           #'';
