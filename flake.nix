@@ -12,23 +12,18 @@
         pkgs = import nixpkgs { inherit system; };
       in {
         devShells.default = pkgs.mkShell {
-          name = "python-sndx";
-
+          name = "sndx";
           buildInputs = [
-            pkgs.python314
-            pkgs.python314Packages.venvShellHook
-            pkgs.jupyter
+            pkgs.python312Packages.python
+            pkgs.python312Packages.venvShellHook
           ];
-
-          shellHook = ''
-            export VIRTUAL_ENV=$PWD/.venv
-            export PATH="$VIRTUAL_ENV/bin:$PATH"
-
-            echo "Python ready $(python --version)"
-            echo "venv active: $VIRTUAL_ENV"
-            echo "To install python packages: pip install -r requirements.txt"
-            echo "To launch Jupyter: jupyter notebook"
-          '';
+          venvDir = "./.venv";
+          #postVenvCreation = ''
+          #  unset SOURCE_DATE_EPOCH
+          #'';
+          #postShellHook = ''
+          #  unset SOURCE_DATE_EPOCH
+          #'';
         };
       });
 }
