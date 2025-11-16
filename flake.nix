@@ -21,6 +21,7 @@
             pkgs.python312Packages.venvShellHook
 
             pkgs.ffmpeg
+            pkgs.chromium
           ];
 
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
@@ -28,6 +29,7 @@
             pkgs.zeromq
           ];
 
+          CHROMIUM_PATH = "${pkgs.chromium}/bin/chromium";
 
           # Fix for opening tmux in nix-shell env
           postShellHook = ''
