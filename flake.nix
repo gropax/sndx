@@ -29,6 +29,7 @@
           # Fix for opening tmux in nix-shell env
           postShellHook = ''
             export SHELL=${pkgs.bashInteractive}/bin/bash
+            pip install -r requirements.txt
           '';
 
           #postVenvCreation = ''
