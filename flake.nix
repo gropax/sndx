@@ -10,6 +10,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let 
         pkgs = import nixpkgs { inherit system; };
+
       in {
         devShells.default = pkgs.mkShell {
           name = "sndx";
@@ -18,6 +19,8 @@
           buildInputs = [
             pkgs.python312Packages.python
             pkgs.python312Packages.venvShellHook
+
+            pkgs.ffmpeg
           ];
 
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
@@ -31,6 +34,7 @@
             export SHELL=${pkgs.bashInteractive}/bin/bash
             pip install -r requirements.txt
           '';
+          # To install kernel : python -m ipykernel install --user --name sndx --display-name "Python (sndx)"
 
           #postVenvCreation = ''
           #  unset SOURCE_DATE_EPOCH
