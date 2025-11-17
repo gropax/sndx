@@ -108,21 +108,73 @@ class AudioRecording:
 
 
 
-
 class Scrapper:
-    def __init__(self, sink, profile_id):
+    def __init__(self, profile_id, headless):
         self.id = generate_id()
         self.profile_id = profile_id
         self.profile_path = f"/path/{profile_id}"
-        self.sink = sink
+        self.headless = headless
         self.browser = None
         self.page = None
 
+    async def __aenter__(self):
+        await self.open()
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.close()
+        return False
+
+    async def wait_a_bit(self):
+        await asyncio.sleep(WAIT_SECONDS)
+
+    async def get_first(self, xpath):
+        elements = await self.page.xpath(xpath)
+        if elements:
+            return await self.get_text(elements[0])
+        else:
+            return None
+
+    async def get_text(self, element):
+        return await self.page.evaluate('(el) => el.textContent', element)
+
+    async def is_logged_in(self):
+        elements = await self.page.xpath("//button[contains(text(), 'Se connecter')]")
+        if len(elements) == 1:
+            return False
+        else:
+            return True
+
+    async def login(self):
+        await self.page.goto(LOGIN_URL)
+        await self.wait_a_bit()
+
+        await self.page.type("input[name='email']", email)
+        await self.page.type("input[name='password']", pwd)
+        elements = await self.page.xpath("//button[text()='Connexion']")
+        await elements[0].click()
+
+    async def goto_logged_in(self, url):
+        await self.page.goto(url)
+        await self.wait_a_bit()
+
+        if not await self.is_logged_in():
+            await self.login()
+            await self.wait_a_bit()
+            await self.page.goto(url)
+
+
+
+class RecordingScrapper(Scrapper):
+    def __init__(self, profile_id, sink, headless=True):
+        super().__init__(profile_id, headless)
+        self.sink = sink
+
 
     async def open(self):
-        print(f"[Crawler-{self.id}] Starting with profile [{self.profile_id}] and sink [{self.sink.name}]...")
+        print(f"[RecordingScrapper-{self.id}] Starting with profile [{self.profile_id}] and sink [{self.sink.name}]...")
         self.browser = await launch(
-            headless=False,
+            headless=self.headless,
             executablePath=CHROMIUM_PATH,
             userDataDir=self.profile_path,
             args= [
@@ -132,24 +184,16 @@ class Scrapper:
         pages = await self.browser.pages()
         self.page = pages[0]
 
-    async def close(self):
-        print(f"[Crawler-{self.id}] Terminating...")
-        await self.browser.close()
 
-    
-    async def __aenter__(self):
-        await self.open()
-        return self
-    
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        await self.close()
-        return False
+    async def close(self):
+        print(f"[RecordingScrapper-{self.id}] Terminating...")
+        await self.browser.close()
 
 
     async def scrap_recording(self, url):
         await self.goto_logged_in(url)
         await self.wait_a_bit()
-        
+
         metadata = await self.extract_metadata()
 
         audio_file = output_dir / safe_filename(f"{metadata.title or "no-title"}.mp3")
@@ -161,32 +205,20 @@ class Scrapper:
         await asyncio.sleep(metadata.duration.seconds)
         recording.stop()
 
-    
-    async def get_first(self, xpath):
-        elements = await self.page.xpath(xpath)
-        if elements:
-            return await self.get_text(elements[0])
-        else:
-            return None
-    
-    
-    async def get_text(self, element):
-        return await self.page.evaluate('(el) => el.textContent', element)
-        
-    
+
     async def extract_metadata(self):
         url = await self.page.evaluate('() => window.location.href')
         category = await self.get_first("//h3[following-sibling::*[2][self::h1]]")
         title = await self.get_first("//h1[preceding-sibling::*[2][self::h3]]")
         subtitle = await self.get_first("//h2[preceding-sibling::*[3][self::h3]]")
-    
+
         details = await self.page.xpath("//ul[@id='details']//dd")
         code = (await self.get_text(details[0])).strip()
         date = (await self.get_text(details[1])).strip()
         place = (await self.get_text(details[2])).strip()
         authors = [s.strip() for s in (await self.get_text(details[3])).split("<br/>")]
         duration_str = (await self.get_text(details[4])).strip()
-        
+
         return RecordingMetadata(
             url=url,
             category=category,
@@ -198,42 +230,11 @@ class Scrapper:
             authors=authors,
             duration=parse_duration(duration_str))
 
-    
-    async def wait_a_bit(self):
-        await asyncio.sleep(WAIT_SECONDS)
-    
-    
-    async def is_logged_in(self):
-        elements = await self.page.xpath("//button[contains(text(), 'Se connecter')]")
-        if len(elements) == 1:
-            return False
-        else:
-            return True
-    
-    
-    async def login(self):
-        await self.page.goto(LOGIN_URL)
-        await self.wait_a_bit()
-        
-        await self.page.type("input[name='email']", email)
-        await self.page.type("input[name='password']", pwd)
-        elements = await self.page.xpath("//button[text()='Connexion']")
-        await elements[0].click()
-    
-    
-    async def goto_logged_in(self, url):
-        await self.page.goto(url)
-        await self.wait_a_bit()
-        
-        if not await self.is_logged_in():
-            await self.login()
-            await self.wait_a_bit()
-            await self.page.goto(url)
-    
-    
+
     async def play_recording(self):
         elements = await self.page.xpath("//a[contains(text(), 'Audio bas débit')]")
         await elements[0].click()
 
 
-__all__ = ["Sink", "Scrapper"]
+
+__all__ = ["Sink", "Scrapper", "RecordingScrapper"]
