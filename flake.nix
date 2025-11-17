@@ -14,11 +14,10 @@
       in {
         devShells.default = pkgs.mkShell {
           name = "sndx";
-          venvDir = "./.venv";
 
           buildInputs = [
-            pkgs.python312Packages.python
-            pkgs.python312Packages.venvShellHook
+            pkgs.python312
+            pkgs.poetry
 
             pkgs.ffmpeg
             pkgs.chromium
@@ -29,21 +28,19 @@
             pkgs.zeromq
           ];
 
+          # Fix for opening tmux in nix-shell env
+          SHELL= "${pkgs.bashInteractive}/bin/bash";
+
+          # Allow pyppeteer to run nix-managed chromium
           CHROMIUM_PATH = "${pkgs.chromium}/bin/chromium";
 
-          # Fix for opening tmux in nix-shell env
-          postShellHook = ''
-            export SHELL=${pkgs.bashInteractive}/bin/bash
-            pip install -r requirements.txt
+          # Make the python virtual env local
+          POETRY_VIRTUALENVS_IN_PROJECT = "1";
+
+          shellHook = ''
+            poetry install
           '';
           # To install kernel : python -m ipykernel install --user --name sndx --display-name "Python (sndx)"
-
-          #postVenvCreation = ''
-          #  unset SOURCE_DATE_EPOCH
-          #'';
-          #postShellHook = ''
-          #  unset SOURCE_DATE_EPOCH
-          #'';
         };
       });
 }
