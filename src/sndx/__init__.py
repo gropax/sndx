@@ -13,9 +13,6 @@ CHROMIUM_PATH = os.environ.get("CHROMIUM_PATH")
 LOGIN_URL = "https://vod.catalogue-crc.org/connexion.html"
 WAIT_SECONDS = 2  # Wait duration between navigation operations
 
-email = "genefrawoune-3470@yopmail.com"
-pwd = (Path(os.getcwd()) / '..' / 'pwd.secret').read_text(encoding="utf-8").strip()
-
 
 def parse_duration(s: str) -> int:
     parts = list(map(int, s.split(":")))
@@ -109,11 +106,13 @@ class AudioRecording:
 
 
 class Scrapper:
-    def __init__(self, profile_id, headless):
+    def __init__(self, profile_id, headless, email, pwd):
         self.id = generate_id()
         self.profile_id = profile_id
         self.profile_path = f"/path/{profile_id}"
         self.headless = headless
+        self.email = email
+        self.pwd = pwd
         self.browser = None
         self.page = None
 
@@ -149,8 +148,8 @@ class Scrapper:
         await self.page.goto(LOGIN_URL)
         await self.wait_a_bit()
 
-        await self.page.type("input[name='email']", email)
-        await self.page.type("input[name='password']", pwd)
+        await self.page.type("input[name='email']", self.email)
+        await self.page.type("input[name='password']", self.pwd)
         elements = await self.page.xpath("//button[text()='Connexion']")
         await elements[0].click()
 
@@ -166,13 +165,13 @@ class Scrapper:
 
 
 class RecordingScrapper(Scrapper):
-    def __init__(self, profile_id, sink, headless=True):
-        super().__init__(profile_id, headless)
+    def __init__(self, profile_id, sink, email, pwd, headless=True):
+        super().__init__(profile_id, headless, email, pwd)
         self.sink = sink
 
 
     async def open(self):
-        print(f"[RecordingScrapper-{self.id}] Starting with profile [{self.profile_id}] and sink [{self.sink.name}]...")
+        print(f"[RecordingScrapper-{self.id}] Starting with profile [{self.profile_path}] and sink [{self.sink.name}]...")
         self.browser = await launch(
             headless=self.headless,
             executablePath=CHROMIUM_PATH,
