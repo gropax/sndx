@@ -9,6 +9,7 @@ readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
     "pyppeteer (>=2.0.0,<3.0.0)",
+    "typer (>=0.20.0,<0.21.0)",
 ]
 
 [tool.poetry]
@@ -16,6 +17,9 @@ dependencies = [
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^4.4.10"
 catppuccin-jupyterlab = "^0.2.4"
+
+[tool.poetry.scripts]
+sndx = "sndx.cli:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
